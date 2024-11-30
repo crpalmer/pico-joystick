@@ -1,0 +1,10 @@
+*.sw?
+animation
+baxter
+fogger
+fogger.duty
+lightning
+libhalloween.a
+strobe
+build/
+build.*/
