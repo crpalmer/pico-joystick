@@ -1,7 +1,9 @@
-#include "pi.h"
 #include <string.h>
+#include "hardware/watchdog.h"
+#include "pi.h"
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/hid.h"
+#include "deep-sleep.h"
 #include "gp-input.h"
 #include "net-console.h"
 #include "net-listener.h"
@@ -46,38 +48,65 @@ private:
     int button_id;
 };
 
+class Sleeper : public PiThread {
+public:
+    Sleeper() : PiThread("sleeper") {
+	prod();
+	start();
+    }
+
+    void prod() {
+	nano_gettime(&last_press);
+    }
+
+    void main(void) {
+	while (1) {
+	    ms_sleep(SLEEP_CHECK_MS);
+	    if (nano_elapsed_ms_now(&last_press) >= SLEEP_MS) {
+		watchdog_reboot(0, 0, 0);
+	    }
+printf("%d\n", (nano_elapsed_ms_now(&last_press) + 500) / 1000);
+	}
+    }
+
+private:
+   struct timespec last_press;
+
+   const int SLEEP_CHECK_MS = 60*1000;
+   const int SLEEP_MS = 15 * 60*1000;
+};
+
 class GamePad : public HID {
 public:
-   GamePad(const char *name, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass) {
-printf("Gamepad created, HID::HID should have been called by now\n");
+    GamePad(Sleeper *sleeper, const char *name, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
 	request_can_send_now();
-   }
+    }
 
-   void can_send_now() override {
+    void can_send_now() override {
+	sleeper->prod();
 	consoles_printf("Can send now!\n");
 	send_report(report, 5);
-   }
+    }
 
-   void set_button(int button, bool value) {
+    void set_button(int button, bool value) {
 	int byte = button/8;
 	int bit = button%8;
-
-consoles_printf("button %d %d\n", button, value);
 
 	if (value) state[byte] |= (1 << bit);
 	else state[byte] &= ~(1 << bit);
 
 	request_can_send_now();
-   }
+    }
 
-   bool is_button_pressed(int button) {
+    bool is_button_pressed(int button) {
 	int byte = button/8;
 	int bit = button%8;
 
 	return (state[byte] & (1 << bit)) != 0;
-   }
+    }
 
 private:
+   class Sleeper *sleeper;
    uint8_t report[5] = { 0xa1 };
    uint8_t *state = &report[1];
 };
@@ -89,7 +118,6 @@ void Button::on_change(void) {
 void Button::main() {
     while (1) {
 	bool this_value = get();
-consoles_printf("%d %d\n", last_value, this_value);
 	if (this_value != last_value) {
 	    gp->set_button(button_id, this_value);
 	    last_value = this_value;
@@ -142,11 +170,22 @@ public:
 
 static void threads_main(int argc, char **argv) {
     const char *name = "Pico GamePad";
-    printf("Starting\n");
+    const int WAKEUP_GPIO = 28;
+ms_sleep(1000);
+
+    if (watchdog_caused_reboot()) {
+	printf("Going to sleep...\n");
+	pico_enter_deep_sleep_until(WAKEUP_GPIO);
+    } else {
+        printf("Starting\n");
+    }
+
+    Sleeper *sleeper = new Sleeper();
+
     wifi_init(name);
     bluetooth_init();
     hid_init();
-    gp = new GamePad("gamepad", (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
+    gp = new GamePad(sleeper, "gamepad", (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
     new Button(gp, 0, 28, "test-button");
     new Button(gp, 2, 2, "joy1");
     new Button(gp, 3, 3, "joy2");
