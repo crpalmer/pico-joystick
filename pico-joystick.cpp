@@ -52,7 +52,6 @@ public:
            if (nano_elapsed_ms_now(&last_press) >= SLEEP_MS) {
                watchdog_reboot(0, 0, 0);
            }
-printf("%d\n", (nano_elapsed_ms_now(&last_press) + 500) / 1000);
        }
     }
 
@@ -72,7 +71,6 @@ public:
 
     void can_send_now() override {
 	sleeper->prod();
-	consoles_printf("Can send now!\n");
 	send_report(report, 5);
     }
 
@@ -186,7 +184,9 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
 	}
     }
 
-    if (false && watchdog_caused_reboot()) {
+    printf("No bootloader request, checking for deep sleep\n");
+
+    if (watchdog_caused_reboot()) {
 	printf("Going to sleep...\n");
 	pico_enter_deep_sleep_until(wakeup_gpio);
     } else {
