@@ -5,6 +5,7 @@
 #include "bluetooth/hid.h"
 #include "deep-sleep.h"
 #include "gp-input.h"
+#include "gp-output.h"
 #include "net-console.h"
 #include "net-listener.h"
 #include "pi-threads.h"
@@ -84,6 +85,8 @@ class GamePad : public HID {
 public:
     GamePad(Sleeper *sleeper, const char *name, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
 	request_can_send_now();
+	connected_led = new GPOutput(27);
+	connected_led->off();
     }
 
     void can_send_now() override {
@@ -109,10 +112,19 @@ public:
 	return (state[byte] & (1 << bit)) != 0;
     }
 
+    void on_connect() override {
+	connected_led->on();
+    }
+
+    void on_disconnect() override {
+	connected_led->off();
+    }
+
 private:
    class Sleeper *sleeper;
    uint8_t report[5] = { 0xa1 };
    uint8_t *state = &report[1];
+   GPOutput *connected_led;
 };
 
 void Button::on_change(void) {
@@ -202,6 +214,9 @@ static void threads_main(int argc, char **argv) {
     } else {
         printf("Starting\n");
     }
+
+    GPOutput *power_led = new GPOutput(POWER_LED_GPIO);
+    power_led->on();
 
     Sleeper *sleeper = new Sleeper();
 
