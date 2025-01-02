@@ -30,11 +30,6 @@ const uint8_t profile_data[] = {
 
 class GamePad;
 
-static void configure_button(GPInput *button) {
-    button->set_pullup_up();
-    button->set_debounce(1);
-}
-
 class Sleeper : public PiThread {
 public:
     Sleeper() : PiThread("sleeper") {
@@ -61,11 +56,12 @@ private:
    const int SLEEP_CHECK_MS = 60*1000;
    const int SLEEP_MS = 15 * 60*1000;
 };
+
 class GamePad : public HID {
 public:
-    GamePad(Sleeper *sleeper, const char *name, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
+    GamePad(Sleeper *sleeper, const char *name, int connected_led_gpio, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
 	request_can_send_now();
-	connected_led = new GPOutput(27);
+	connected_led = new GPOutput(connected_led_gpio);
 	connected_led->off();
     }
 
@@ -169,7 +165,7 @@ public:
     }
 };
 
-class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio) {
+class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio, int bluetooth_led_gpio) {
     const int BOOTLOADER_HOLD_MS = 100;
 
     GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
@@ -202,7 +198,7 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
     wifi_init(hostname);
     bluetooth_init();
     hid_init();
-    gp = new GamePad(sleeper, "gamepad", (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
+    gp = new GamePad(sleeper, "gamepad", bluetooth_led_gpio, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
     return gp;
 }
 
