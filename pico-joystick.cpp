@@ -170,11 +170,12 @@ public:
 };
 
 class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio) {
-    const int BOOTLOADER_HOLD_MS = 1000;
+    const int BOOTLOADER_HOLD_MS = 100;
 
     GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
     configure_button(bootloader_gpio);
 
+    printf("Checking for bootloader request\n");
     struct timespec start;
     nano_gettime(&start);
 
