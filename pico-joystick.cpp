@@ -171,9 +171,8 @@ public:
 static void threads_main(int argc, char **argv) {
     const char *name = "Pico GamePad";
     const int WAKEUP_GPIO = 28;
-ms_sleep(1000);
 
-    if (watchdog_caused_reboot()) {
+    if (false && watchdog_caused_reboot()) {
 	printf("Going to sleep...\n");
 	pico_enter_deep_sleep_until(WAKEUP_GPIO);
     } else {
