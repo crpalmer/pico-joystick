@@ -30,11 +30,15 @@ const uint8_t profile_data[] = {
 
 class GamePad;
 
+static void configure_button(GPInput *button) {
+    button->set_pullup_up();
+    button->set_debounce(1);
+}
+
 class Button : public GPInput, public InputNotifier, PiThread {
 public:
     Button(class GamePad *gp, int button_id, int gpio, const char *name = "button") : GPInput(gpio), PiThread(name), gp(gp), button_id(button_id) {
-	set_pullup_up();
-	set_debounce(1);
+	configure_button(this);
 	set_notifier(this);
 	start();
     }
@@ -168,9 +172,29 @@ public:
     }
 };
 
+static void check_bootloader_boot() {
+    const int BOOTLOADER_HOLD_GPIO = 6;
+    const int BOOTLOADER_HOLD_MS = 1000;
+
+    GPInput *bootloader_gpio = new GPInput(BOOTLOADER_HOLD_GPIO);
+    configure_button(bootloader_gpio);
+
+    struct timespec start;
+    nano_gettime(&start);
+
+    while (bootloader_gpio->get()) {
+	if (nano_elapsed_ms_now(&start) >= BOOTLOADER_HOLD_MS) {
+	    pi_reboot_bootloader();
+	}
+    }
+}
+
 static void threads_main(int argc, char **argv) {
     const char *name = "Pico GamePad";
     const int WAKEUP_GPIO = 28;
+    const int POWER_LED_GPIO = 26;
+
+    check_bootloader_boot();
 
     if (false && watchdog_caused_reboot()) {
 	printf("Going to sleep...\n");
