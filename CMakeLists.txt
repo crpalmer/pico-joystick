@@ -4,6 +4,13 @@ include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 #pico_sdk_init()
 
+function(executable name)
+   add_executable(${name} ${name}.cpp pico-joystick.cpp)
+   platform_executable(${name})
+   target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+   target_link_libraries(${name} PRIVATE lib-pi)
+endfunction()
+
 project(pico-joystick)
 
 set(PLATFORM pico)
@@ -11,7 +18,5 @@ include(lib/platform.cmake)
 
 add_subdirectory(lib)
 
-add_executable(pico-joystick pico-joystick.cpp)
-platform_executable(pico-joystick)
-target_include_directories(pico-joystick PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(pico-joystick PRIVATE lib-pi)
+executable(test-gamepad)
+executable(joystick)

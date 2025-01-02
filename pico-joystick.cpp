@@ -4,13 +4,12 @@
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/hid.h"
 #include "deep-sleep.h"
-#include "gp-input.h"
 #include "gp-output.h"
 #include "net-console.h"
 #include "net-listener.h"
-#include "pi-threads.h"
 #include "time-utils.h"
 #include "wifi.h"
+#include "pico-joystick.h"
 
 const uint8_t profile_data[] = {
     0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
@@ -36,42 +35,25 @@ static void configure_button(GPInput *button) {
     button->set_debounce(1);
 }
 
-class Button : public GPInput, public InputNotifier, PiThread {
-public:
-    Button(class GamePad *gp, int button_id, int gpio, const char *name = "button") : GPInput(gpio), PiThread(name), gp(gp), button_id(button_id) {
-	configure_button(this);
-	set_notifier(this);
-	start();
-    }
-
-    void main(void) override;
-    void on_change(void) override;
-
-private:
-    class GamePad *gp;
-    int last_value = -1;
-    int button_id;
-};
-
 class Sleeper : public PiThread {
 public:
     Sleeper() : PiThread("sleeper") {
-	prod();
-	start();
+       prod();
+       start();
     }
 
     void prod() {
-	nano_gettime(&last_press);
+       nano_gettime(&last_press);
     }
 
     void main(void) {
-	while (1) {
-	    ms_sleep(SLEEP_CHECK_MS);
-	    if (nano_elapsed_ms_now(&last_press) >= SLEEP_MS) {
-		watchdog_reboot(0, 0, 0);
-	    }
+       while (1) {
+           ms_sleep(SLEEP_CHECK_MS);
+           if (nano_elapsed_ms_now(&last_press) >= SLEEP_MS) {
+               watchdog_reboot(0, 0, 0);
+           }
 printf("%d\n", (nano_elapsed_ms_now(&last_press) + 500) / 1000);
-	}
+       }
     }
 
 private:
@@ -80,7 +62,6 @@ private:
    const int SLEEP_CHECK_MS = 60*1000;
    const int SLEEP_MS = 15 * 60*1000;
 };
-
 class GamePad : public HID {
 public:
     GamePad(Sleeper *sleeper, const char *name, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
@@ -127,6 +108,14 @@ private:
    GPOutput *connected_led;
 };
 
+static class GamePad *gp;
+
+Button::Button(int button_id, int gpio, const char *name) : GPInput(gpio), PiThread(name), button_id(button_id) { 
+    configure_button(this);
+    set_notifier(this);
+    start();
+}
+
 void Button::on_change(void) {
     resume_from_isr();
 }
@@ -142,12 +131,10 @@ void Button::main() {
     }
 }
 
-static class GamePad *gp;
-
-class TestingThread : public NetConsole, public PiThread {
+class NetThread : public NetConsole, public PiThread {
 public:
-    TestingThread(Reader *r, Writer *w) : NetConsole(r, w), PiThread("testing-thread") { start(); }
-    TestingThread(int fd) : NetConsole(fd), PiThread("testing-thread") { start(); }
+    NetThread(Reader *r, Writer *w) : NetConsole(r, w), PiThread("testing-thread") { start(); }
+    NetThread(int fd) : NetConsole(fd), PiThread("testing-thread") { start(); }
 
     void main() {
 	Console::main();
@@ -175,20 +162,19 @@ public:
     }
 };
 
-class NetThread : NetListener {
+class NetListenerThread : NetListener {
 public:
-    NetThread(uint16_t port) : NetListener(port) { start(); }
+    NetListenerThread(uint16_t port) : NetListener(port) { start(); }
 
     void accepted(int fd) {
-        new TestingThread(fd);
+        new NetThread(fd);
     }
 };
 
-static void check_bootloader_boot() {
-    const int BOOTLOADER_HOLD_GPIO = 6;
+class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio) {
     const int BOOTLOADER_HOLD_MS = 1000;
 
-    GPInput *bootloader_gpio = new GPInput(BOOTLOADER_HOLD_GPIO);
+    GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
     configure_button(bootloader_gpio);
 
     struct timespec start;
@@ -199,45 +185,28 @@ static void check_bootloader_boot() {
 	    pi_reboot_bootloader();
 	}
     }
-}
-
-static void threads_main(int argc, char **argv) {
-    const char *name = "Pico GamePad";
-    const int WAKEUP_GPIO = 28;
-    const int POWER_LED_GPIO = 26;
-
-    check_bootloader_boot();
 
     if (false && watchdog_caused_reboot()) {
 	printf("Going to sleep...\n");
-	pico_enter_deep_sleep_until(WAKEUP_GPIO);
+	pico_enter_deep_sleep_until(wakeup_gpio);
     } else {
         printf("Starting\n");
     }
 
-    GPOutput *power_led = new GPOutput(POWER_LED_GPIO);
+    GPOutput *power_led = new GPOutput(power_led_gpio);
     power_led->on();
 
     Sleeper *sleeper = new Sleeper();
 
-    wifi_init(name);
+    wifi_init(hostname);
     bluetooth_init();
     hid_init();
     gp = new GamePad(sleeper, "gamepad", (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
-    new Button(gp, 0, 28, "test-button");
-    new Button(gp, 1, 2, "joy1");
-    new Button(gp, 2, 3, "joy2");
-    new Button(gp, 3, 4, "joy3");
-    new Button(gp, 4, 5, "joy4");
-    new Button(gp, 5, 6, "button1");
-    new Button(gp, 6, 9, "button2");
-    new Button(gp, 7, 13, "button3");
-    new Button(gp, 8, 17, "button4");
-    bluetooth_start_gamepad(name);
-    wifi_wait_for_connection();
-    new NetThread(4567);
+    return gp;
 }
 
-int main(int argc, char **argv) {
-    pi_init_with_threads(threads_main, argc, argv);
+void pico_joystick_start(const char *bluetooth_name) {
+    bluetooth_start_gamepad(bluetooth_name);
+    wifi_wait_for_connection();
+    new NetListenerThread(4567);
 }
