@@ -60,7 +60,6 @@ private:
 class GamePad : public HID {
 public:
     GamePad(Sleeper *sleeper, const char *name, int connected_led_gpio, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
-	request_can_send_now();
 	connected_led = new GPOutput(connected_led_gpio);
 	connected_led->off();
     }
