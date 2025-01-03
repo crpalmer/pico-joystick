@@ -172,6 +172,8 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
     GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
     configure_button(bootloader_gpio);
 
+    ms_sleep(1000);	// This seems to be important to let the bluetooth stack and the threads library both get started
+
     printf("Checking for bootloader request\n");
     struct timespec start;
     nano_gettime(&start);
