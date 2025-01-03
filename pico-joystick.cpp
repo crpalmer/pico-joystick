@@ -105,8 +105,8 @@ static class GamePad *gp;
 
 Button::Button(int button_id, int gpio, const char *name) : GPInput(gpio), PiThread(name), button_id(button_id) { 
     configure_button(this);
-    set_notifier(this);
     start();
+    set_notifier(this);
 }
 
 void Button::on_change(void) {
