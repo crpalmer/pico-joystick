@@ -185,16 +185,13 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
     printf("No bootloader request, checking for deep sleep\n");
 
     if (watchdog_caused_reboot()) {
-	printf("Going to sleep...\n");
+	printf("Going to sleep on gpio %d...\n", wakeup_gpio);
+	GPInput *wakeup = new GPInput(wakeup_gpio);
+	configure_button(wakeup);
 	pico_enter_deep_sleep_until(wakeup_gpio);
     } else {
         printf("Starting\n");
     }
-
-    GPOutput *power_led = new GPOutput(power_led_gpio);
-    power_led->on();
-
-    Sleeper *sleeper = new Sleeper();
 
     if (wifi_enabled_gpio >= 0) {
 	GPInput *wifi_gpio = new GPInput(wifi_enabled_gpio);
@@ -203,9 +200,16 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
     }
 
     if (has_wifi) wifi_init(hostname);
+
     bluetooth_init();
     hid_init();
+
+    Sleeper *sleeper = new Sleeper();
     gp = new GamePad(sleeper, "gamepad", bluetooth_led_gpio, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
+
+    GPOutput *power_led = new GPOutput(power_led_gpio);
+    power_led->on();
+
     return gp;
 }
 
