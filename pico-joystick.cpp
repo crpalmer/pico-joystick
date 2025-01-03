@@ -165,7 +165,9 @@ public:
     }
 };
 
-class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio, int bluetooth_led_gpio) {
+static bool has_wifi = false;
+
+class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio, int bluetooth_led_gpio, int wifi_enabled_gpio) {
     const int BOOTLOADER_HOLD_MS = 100;
 
     GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
@@ -195,7 +197,13 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
 
     Sleeper *sleeper = new Sleeper();
 
-    wifi_init(hostname);
+    if (wifi_enabled_gpio >= 0) {
+	GPInput *wifi_gpio = new GPInput(wifi_enabled_gpio);
+	configure_button(wifi_gpio);
+	has_wifi = wifi_gpio->get();
+    }
+
+    if (has_wifi) wifi_init(hostname);
     bluetooth_init();
     hid_init();
     gp = new GamePad(sleeper, "gamepad", bluetooth_led_gpio, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
@@ -204,6 +212,8 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
 
 void pico_joystick_start(const char *bluetooth_name) {
     bluetooth_start_gamepad(bluetooth_name);
-    wifi_wait_for_connection();
-    new NetListenerThread(4567);
+    if (has_wifi) {
+        wifi_wait_for_connection();
+        new NetListenerThread(4567);
+    }
 }

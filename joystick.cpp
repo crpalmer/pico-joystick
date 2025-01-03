@@ -13,7 +13,7 @@ void configure_button(GPInput *button) {
 }
 
 static void threads_main(int argc, char **argv) {
-    pico_joystick_on_boot("pico-joystick", WAKE_GPIO, WAKE_GPIO, 21, 27);
+    pico_joystick_on_boot("pico-joystick", WAKE_GPIO, WAKE_GPIO, 21, 27, 9);
     new Button(31, 2, "joy1");
     new Button(30, 3, "joy2");
     new Button(29, 4, "joy3");
