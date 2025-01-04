@@ -5,13 +5,12 @@
 static Button *configure_wakeup_game_button(Button *button) {
     button->set_pullup_down();
     button->set_is_inverted();
-    button->set_debounce(1);
     return button;
 }
 
 static Button *configure_ui_button(Button *button) {
     button->set_pullup_up();
-    button->set_debounce(1);
+    button->set_debounce(10);
     return button;
 }
 
