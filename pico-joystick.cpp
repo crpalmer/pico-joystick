@@ -59,9 +59,8 @@ private:
 
 class GamePad : public HID {
 public:
-    GamePad(Sleeper *sleeper, const char *name, int connected_led_gpio, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper) {
-	connected_led = new GPOutput(connected_led_gpio);
-	connected_led->off();
+    GamePad(Sleeper *sleeper, const char *name, GPOutput *connected_led, uint8_t *descriptor, uint16_t hid_descriptor_len, uint8_t subclass) : HID(name, descriptor, hid_descriptor_len, subclass), sleeper(sleeper), connected_led(connected_led) {
+	if (connected_led) connected_led->off();
     }
 
     void can_send_now() override {
@@ -87,11 +86,11 @@ public:
     }
 
     void on_connect() override {
-	connected_led->on();
+	if (connected_led) connected_led->on();
     }
 
     void on_disconnect() override {
-	connected_led->off();
+	if (connected_led) connected_led->off();
     }
 
 private:
@@ -103,8 +102,7 @@ private:
 
 static class GamePad *gp;
 
-Button::Button(int button_id, int gpio, const char *name) : GPInput(gpio), PiThread(name), button_id(button_id) { 
-    configure_button(this);
+Button::Button(int gpio, const char *name) : GPInput(gpio), PiThread(name) { 
     start();
     set_notifier(this);
 }
@@ -117,7 +115,7 @@ void Button::main() {
     while (1) {
 	bool this_value = get();
 	if (this_value != last_value) {
-	    gp->set_button(button_id, this_value);
+	    if (button_id >= 0) gp->set_button(button_id, this_value);
 	    last_value = this_value;
 	}
 	pause();
@@ -166,19 +164,19 @@ public:
 
 static bool has_wifi = false;
 
-class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_gpio, int wakeup_gpio, int power_led_gpio, int bluetooth_led_gpio, int wifi_enabled_gpio) {
+class GamePad *pico_joystick_on_boot(const char *hostname, GPInput *bootloader_button, int wakeup_gpio, GPOutput *power_led, GPOutput *bluetooth_led, GPInput *wifi_enable_button) {
     const int BOOTLOADER_HOLD_MS = 100;
 
-    GPInput *bootloader_gpio = new GPInput(bootloader_check_gpio);
-    configure_button(bootloader_gpio);
-
     ms_sleep(1000);	// This seems to be important to let the bluetooth stack and the threads library both get started
+
+    if (power_led) power_led->off();
+    if (bluetooth_led) bluetooth_led->off();
 
     printf("Checking for bootloader request\n");
     struct timespec start;
     nano_gettime(&start);
 
-    while (bootloader_gpio->get()) {
+    while (bootloader_button->get()) {
 	if (nano_elapsed_ms_now(&start) >= BOOTLOADER_HOLD_MS) {
 	    pi_reboot_bootloader();
 	}
@@ -188,29 +186,21 @@ class GamePad *pico_joystick_on_boot(const char *hostname, int bootloader_check_
 
     if (watchdog_caused_reboot()) {
 	printf("Going to sleep on gpio %d...\n", wakeup_gpio);
-	GPInput *wakeup = new GPInput(wakeup_gpio);
-	configure_button(wakeup);
 	pico_enter_deep_sleep_until(wakeup_gpio);
     } else {
         printf("Starting\n");
     }
 
-    if (wifi_enabled_gpio >= 0) {
-	GPInput *wifi_gpio = new GPInput(wifi_enabled_gpio);
-	configure_button(wifi_gpio);
-	has_wifi = wifi_gpio->get();
-    }
+    if (power_led) power_led->on();
 
+    has_wifi = wifi_enable_button != NULL && wifi_enable_button->get();
     if (has_wifi) wifi_init(hostname);
 
     bluetooth_init();
     hid_init();
 
     Sleeper *sleeper = new Sleeper();
-    gp = new GamePad(sleeper, "gamepad", bluetooth_led_gpio, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
-
-    GPOutput *power_led = new GPOutput(power_led_gpio);
-    power_led->on();
+    gp = new GamePad(sleeper, "gamepad", bluetooth_led, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
 
     return gp;
 }

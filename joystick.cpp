@@ -2,28 +2,50 @@
 
 #define WAKE_GPIO 28
 
-void configure_button(GPInput *button) {
-    if (button->get_gpio() == WAKE_GPIO) {
-        button->set_pullup_down();
-        button->set_is_inverted();
-    } else {
-        button->set_pullup_up();
-    }
+static Button *configure_wakeup_game_button(Button *button) {
+    button->set_pullup_down();
+    button->set_is_inverted();
     button->set_debounce(1);
+    return button;
+}
+
+static Button *configure_ui_button(Button *button) {
+    button->set_pullup_up();
+    button->set_debounce(1);
+    return button;
+}
+
+static Button *configure_game_button(Button *button) {
+    button->set_pullup_up();
+    return button;
 }
 
 static void threads_main(int argc, char **argv) {
-    pico_joystick_on_boot("pico-joystick", WAKE_GPIO, WAKE_GPIO, 21, 27, 9);
-    new Button(31, 2, "down");
-    new Button(30, 3, "up");
-    new Button(29, 4, "right");
-    new Button(28, 5, "left");
-    new Button(27, 6, "meta");
-    new Button(26, 14, "start");
-    new Button(25, 17, "select");
-    new Button(24, 9, "button-2");
-    new Button(23, 28, "button-1");
-    new Button(22, 27, "button-3");
+    Button *select = configure_ui_button(new Button(17, "select"));
+    Button *b1     = configure_wakeup_game_button(new Button(28, "button-1"));
+
+    pico_joystick_on_boot("pico-joystick", b1, WAKE_GPIO, new GPOutput(27), new GPOutput(21), select);
+
+    Button *down  = configure_game_button(new Button(2, "down"));
+    Button *up    = configure_game_button(new Button(3, "up"));
+    Button *right = configure_game_button(new Button(4, "right"));
+    Button *left  = configure_game_button(new Button(5, "left"));
+    Button *meta  = configure_ui_button  (new Button(6, "meta"));
+    Button *b2    = configure_game_button(new Button(9, "button-2"));
+    Button *start = configure_ui_button(new Button(14, "start"));
+    //Button *b3    = configure_game_button(new Button(22, "button-3"));
+
+    down->set_button_id(31);
+    up->set_button_id(30);
+    right->set_button_id(29);
+    left->set_button_id(28);
+    meta->set_button_id(27);
+    start->set_button_id(26);
+    select->set_button_id(25);
+    b2->set_button_id(24);
+    b1->set_button_id(23);
+    //b3->set_button_id(22);
+
     pico_joystick_start("Pico Joystick");
 }
     

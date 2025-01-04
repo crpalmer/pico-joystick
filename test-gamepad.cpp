@@ -1,18 +1,19 @@
 #include "pico-joystick.h"
 
-void configure_button(GPInput *button) {
-    if (button->get_gpio() == 28) {
-	button->set_pullup_down();
-	button->set_is_inverted();
-    } else {
-        button->set_pullup_up();
-    }
+void configure_test_button(GPInput *button) {
+    button->set_pullup_down();
+    button->set_is_inverted();
     button->set_debounce(1);
 }
 
 static void threads_main(int argc, char **argv) {
-    pico_joystick_on_boot("test-gamepad", 28, 28, 27, 26);
-    new Button(0, 28, "test-button");
+    Button *test_button = new Button(28, "test-button");
+    configure_test_button(test_button);
+
+    pico_joystick_on_boot("test-gamepad", test_button, 28);
+
+    test_button->set_button_id(0);
+
     pico_joystick_start("test gamepad");
 }
     
