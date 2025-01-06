@@ -7,6 +7,8 @@
 #include "gp-output.h"
 #include "net-console.h"
 #include "net-listener.h"
+#include "stdin-reader.h"
+#include "stdout-writer.h"
 #include "time-utils.h"
 #include "wifi.h"
 #include "pico-joystick.h"
@@ -122,10 +124,10 @@ void Button::main() {
     }
 }
 
-class NetThread : public NetConsole, public PiThread {
+class ConsoleThread : public NetConsole, public PiThread {
 public:
-    NetThread(Reader *r, Writer *w) : NetConsole(r, w), PiThread("testing-thread") { start(); }
-    NetThread(int fd) : NetConsole(fd), PiThread("testing-thread") { start(); }
+    ConsoleThread(Reader *r, Writer *w) : NetConsole(r, w), PiThread("console") { start(); }
+    ConsoleThread(int fd) : NetConsole(fd), PiThread("console") { start(); }
 
     void main() {
 	Console::main();
@@ -158,7 +160,7 @@ public:
     NetListenerThread(uint16_t port) : NetListener(port) { start(); }
 
     void accepted(int fd) {
-        new NetThread(fd);
+        new ConsoleThread(fd);
     }
 };
 
