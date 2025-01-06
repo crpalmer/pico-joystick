@@ -1,7 +1,4 @@
-#include "pi.h"
-#include "net.h"
 #include "pico-joystick.h"
-
 
 static Button *configure_wakeup_game_button(Button *button) {
     button->set_pullup_down();
@@ -27,7 +24,7 @@ static void threads_main(int argc, char **argv) {
     GPOutput *power_led = new GPOutput(19);
     GPOutput *bluetooth_led = new GPOutput(18);
 
-    pico_joystick_on_boot(b1, 10, power_led, bluetooth_led, start);
+    pico_joystick_on_boot("pico-joystick", b1, 10, power_led, bluetooth_led, start);
 
     Button *up     = configure_game_button(new Button(2, "up"));
     Button *down   = configure_game_button(new Button(3, "down"));
@@ -49,7 +46,7 @@ static void threads_main(int argc, char **argv) {
     b1->set_button_id(23);
     b3->set_button_id(22);
 
-    pico_joystick_start("Pico Joystick", "pico-joystick");
+    pico_joystick_start("Pico Joystick");
 }
     
 int main(int argc, char **argv) {

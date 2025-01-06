@@ -185,7 +185,7 @@ public:
 
 static bool has_wifi = false;
 
-class GamePad *pico_joystick_on_boot(GPInput *bootloader_button, int wakeup_gpio, GPOutput *power_led, GPOutput *bluetooth_led, GPInput *wifi_enable_button) {
+class GamePad *pico_joystick_on_boot(const char *hostname, GPInput *bootloader_button, int wakeup_gpio, GPOutput *power_led, GPOutput *bluetooth_led, GPInput *wifi_enable_button) {
     const int BOOTLOADER_HOLD_MS = 100;
 
     ms_sleep(1000);	// This seems to be important to let the bluetooth stack and the threads library both get started
@@ -212,14 +212,14 @@ class GamePad *pico_joystick_on_boot(GPInput *bootloader_button, int wakeup_gpio
         printf("Starting\n");
     }
 
-    //new ConsoleThread(new StdinReader(), new StdoutWriter());
+    new ConsoleThread(new StdinReader(), new StdoutWriter());
 
     if (power_led) power_led->on();
 
-    net_platform_init();
-
     if (! wifi_enable_button) has_wifi = true;
     else has_wifi = wifi_enable_button->get();
+
+    if (has_wifi) wifi_init(hostname);
 
     bluetooth_init();
     hid_init();
@@ -230,10 +230,9 @@ class GamePad *pico_joystick_on_boot(GPInput *bootloader_button, int wakeup_gpio
     return gp;
 }
 
-void pico_joystick_start(const char *bluetooth_name, const char *hostname) {
+void pico_joystick_start(const char *bluetooth_name) {
     bluetooth_start_gamepad(bluetooth_name);
     if (has_wifi) {
-	wifi_init(hostname);
         wifi_wait_for_connection();
         new NetListenerThread(4567);
     }

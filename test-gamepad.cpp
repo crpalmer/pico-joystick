@@ -10,11 +10,11 @@ static void threads_main(int argc, char **argv) {
     Button *test_button = new Button(28, "test-button");
     configure_test_button(test_button);
 
-    pico_joystick_on_boot(test_button, 28);
+    pico_joystick_on_boot("test-gamepad", test_button, 28);
 
     test_button->set_button_id(0);
 
-    pico_joystick_start("test gamepad", "test-gamepad");
+    pico_joystick_start("test gamepad");
 }
     
     
