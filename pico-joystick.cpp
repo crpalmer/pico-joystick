@@ -115,7 +115,21 @@ void Button::on_change(void) {
 
 void Button::main() {
     while (1) {
+	int count = 0;
 	bool this_value = get();
+
+	if (debounce_ms == 0) {
+	    do {
+	        bool check_value = get();
+	        if (this_value == check_value) {
+		    count++;
+	        } else {
+		    this_value = check_value;
+		    count = 0;
+	        }
+	    } while (count < 100);
+	}
+
 	if (this_value != last_value) {
 	    if (button_id >= 0) gp->set_button(button_id, this_value);
 	    last_value = this_value;
