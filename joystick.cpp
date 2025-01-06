@@ -21,8 +21,8 @@ static void threads_main(int argc, char **argv) {
     Button *start  = configure_ui_button(new Button(6, "start"));
     Button *b1     = configure_wakeup_game_button(new Button(10, "button-1"));
 
-    GPOutput *power_led = new GPOutput(0);
-    GPOutput *bluetooth_led = new GPOutput(1);
+    GPOutput *power_led = new GPOutput(19);
+    GPOutput *bluetooth_led = new GPOutput(18);
 
     pico_joystick_on_boot("pico-joystick", b1, 10, power_led, bluetooth_led, start);
 
