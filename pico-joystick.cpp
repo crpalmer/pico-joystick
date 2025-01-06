@@ -201,15 +201,23 @@ class GamePad *pico_joystick_on_boot(const char *hostname, GPInput *bootloader_b
     printf("No bootloader request, checking for deep sleep\n");
 
     if (watchdog_caused_reboot()) {
+	// Make sure the LEDs are off, otherwise they will stay on!
+        if (power_led) power_led->off();
+        if (bluetooth_led) bluetooth_led->off();
+
 	printf("Going to sleep on gpio %d...\n", wakeup_gpio);
 	pico_enter_deep_sleep_until(wakeup_gpio);
     } else {
         printf("Starting\n");
     }
 
+    new ConsoleThread(new StdinReader(), new StdoutWriter());
+
     if (power_led) power_led->on();
 
-    has_wifi = wifi_enable_button != NULL && wifi_enable_button->get();
+    if (! wifi_enable_button) has_wifi = true;
+    else has_wifi = wifi_enable_button->get();
+
     if (has_wifi) wifi_init(hostname);
 
     bluetooth_init();
