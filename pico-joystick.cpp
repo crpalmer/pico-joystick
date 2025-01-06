@@ -105,6 +105,11 @@ private:
 static class GamePad *gp;
 
 Button::Button(int gpio, const char *name) : GPInput(gpio), PiThread(name) { 
+}
+
+void Button::set_button_id(int button_id) {
+    assert(this->button_id < 0);
+    this->button_id = button_id;
     start();
     set_notifier(this);
 }

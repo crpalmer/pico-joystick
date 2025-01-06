@@ -12,7 +12,7 @@ class Button : public GPInput, public InputNotifier, PiThread {
 public:
     Button(int gpio, const char *name = "button");
 
-    void set_button_id(int button_id) { this->button_id = button_id; }
+    void set_button_id(int button_id);
 
     void main(void) override;
     void on_change(void) override;
