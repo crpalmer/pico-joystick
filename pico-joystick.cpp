@@ -32,39 +32,24 @@ const uint8_t profile_data[] = {
 
 class GamePad;
 
-class Sleeper : public PiThread {
+class Sleeper : public DeepSleeper {
 public:
-    Sleeper(int wakeup_gpio, GPOutput *led1, GPOutput *led2) : PiThread("sleeper"), wakeup_gpio(wakeup_gpio), led1(led1), led2(led2) {
-       prod();
-       start();
+    Sleeper(int wakeup_gpio, GPOutput *led1, GPOutput *led2) : DeepSleeper(wakeup_gpio, 10 * 60 * 1000), led1(led1), led2(led2) {
     }
 
-    void prod() {
-       nano_gettime(&last_press);
+    void pre_sleep() override {
+	printf("Turning off any leds\n");
+	if (led1) led1->off();
+	if (led2) led2->off();
     }
 
-    void main(void) {
-       while (1) {
-           ms_sleep(SLEEP_CHECK_MS);
-           if (nano_elapsed_ms_now(&last_press) >= SLEEP_MS) {
-		printf("Turning off any leds\n");
-		if (led1) led1->off();
-		if (led2) led2->off();
-		printf("Going to sleep on gpio %d...\n", wakeup_gpio);
-		pico_enter_deep_sleep_until(wakeup_gpio);
-                watchdog_reboot(0, 0, 0);
-           }
-       }
+    void post_sleep() override {
+	pi_reboot();
     }
 
 private:
    int wakeup_gpio;
    GPOutput *led1, *led2;
-
-   struct timespec last_press;
-
-   const int SLEEP_CHECK_MS = 60*1000;
-   const int SLEEP_MS = 10 * 60*1000;
 };
 
 class GamePad : public HID {
