@@ -111,8 +111,7 @@ Button::Button(int gpio, const char *name) : GPInput(gpio), PiThread(name) {
 void Button::set_button_id(int button_id) {
     assert(this->button_id < 0);
     this->button_id = button_id;
-    start();
-    set_notifier(this);
+    start(1, 1);		// only run on core 0
 }
 
 void Button::on_change(void) {
@@ -120,6 +119,9 @@ void Button::on_change(void) {
 }
 
 void Button::main() {
+    // Set the notifier on the core we'll be running on
+    set_notifier(this);
+
     while (1) {
 	int count = 0;
 	bool this_value = get();
