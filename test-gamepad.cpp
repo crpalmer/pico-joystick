@@ -1,20 +1,18 @@
 #include "pico-joystick.h"
+#include "time-utils.h"
 
-void configure_test_button(GPInput *button) {
+Button *configure_test_button(Button *button) {
     button->set_pullup_down();
     button->set_is_inverted();
     button->set_debounce(1);
+    return button;
 }
 
 static void threads_main(int argc, char **argv) {
-    Button *test_button = new Button(28, "test-button");
-    configure_test_button(test_button);
+    pico_joystick_run("Test Gamepad");
 
-    pico_joystick_on_boot("test-gamepad", test_button, 28);
-
+    Button *test_button = configure_test_button(new Button(28, "test-button"));
     test_button->set_button_id(0);
-
-    pico_joystick_start("test gamepad");
 }
     
     

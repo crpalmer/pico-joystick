@@ -24,7 +24,6 @@ private:
 
 extern void configure_button(GPInput *button);
 
-class GamePad *pico_joystick_on_boot(const char *hostname, GPInput *bootloader_button, int wakeup_gpio, GPOutput *power_led = NULL, GPOutput *bluetooth_led = NULL, GPInput *wakeup_button = NULL);
-void pico_joystick_start(const char *bluetooth_name);
+class GamePad *pico_joystick_run(const char *bluetooth_name, GPInput *bootloader_button = NULL, int wakeup_gpio = -1, GPOutput *power_led = NULL, GPOutput *bluetooth_led = NULL, GPInput *wifi_button = NULL, const char *hostname = NULL);
 
 #endif
