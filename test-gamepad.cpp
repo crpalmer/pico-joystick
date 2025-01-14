@@ -1,4 +1,6 @@
+#include "pi.h"
 #include "pico-joystick.h"
+#include "pi-threads.h"
 #include "time-utils.h"
 
 Button *configure_test_button(Button *button) {
@@ -15,8 +17,7 @@ static void threads_main(int argc, char **argv) {
     test_button->set_button_id(0);
 }
     
-    
 int main(int argc, char **argv) {
-   pi_init_with_threads(threads_main, argc, argv);
+    pi_init_with_threads(threads_main, argc, argv);
 }
 
