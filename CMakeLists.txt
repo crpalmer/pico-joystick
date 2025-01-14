@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.12)
-set(PICO_BOARD pico_w)
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 #pico_sdk_init()
@@ -8,7 +7,12 @@ function(executable name)
    add_executable(${name} ${name}.cpp pico-joystick.cpp)
    platform_executable(${name})
    target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-   target_link_libraries(${name} PRIVATE lib-pi)
+   target_link_libraries(${name} PRIVATE
+      lib-pi
+      lib-pi-net
+      lib-pi-threads
+      hardware_watchdog
+   )
 endfunction()
 
 project(pico-joystick)
