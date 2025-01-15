@@ -110,8 +110,9 @@ Button::Button(int gpio, const char *name) : GPInput(gpio), PiThread(name) {
 
 void Button::set_button_id(int button_id) {
     assert(this->button_id < 0);
+    assert(button_id >= 0);
     this->button_id = button_id;
-    start(1, 1);		// only run on core 0
+    start(3);
 }
 
 void Button::on_change(void) {
