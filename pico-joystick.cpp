@@ -32,24 +32,24 @@ const uint8_t profile_data[] = {
 
 class GamePad;
 
-class Sleeper : public DeepSleeper {
+class SleepThenReboot : public DeepSleeper {
 public:
-    Sleeper(int wakeup_gpio, GPOutput *led1, GPOutput *led2) : DeepSleeper(wakeup_gpio, 10 * 60 * 1000), led1(led1), led2(led2) {
-    }
-
-    void pre_sleep() override {
-	printf("Turning off any leds\n");
-	if (led1) led1->off();
-	if (led2) led2->off();
+    SleepThenReboot(int wakeup_gpio) : DeepSleeper(wakeup_gpio, 1) {
     }
 
     void post_sleep() override {
-	pi_reboot();
+        pi_reboot();
+    }
+};
+
+class Sleeper : public DeepSleeper {
+public:
+    Sleeper(int wakeup_gpio) : DeepSleeper(wakeup_gpio, 10 * 60 * 1000) {
     }
 
-private:
-   int wakeup_gpio;
-   GPOutput *led1, *led2;
+    void pre_sleep() override {
+        watchdog_enable(1, 0);
+    }
 };
 
 class GamePad : public HID {
@@ -208,9 +208,15 @@ class GamePad *pico_joystick_run(const char *bluetooth_name, GPInput *bootloader
 	}
     }
 
+    if (watchdog_enable_caused_reboot() && wakeup_gpio >= 0) {
+	printf("Going to sleep in 1ms\n"); fflush(stdout);
+	new SleepThenReboot(wakeup_gpio);
+	ms_sleep(100);
+    }
+
     printf("Starting\n");
 
-    //new ConsoleThread(new StdinReader(), new StdoutWriter());
+    new ConsoleThread(new StdinReader(), new StdoutWriter());
 
     if (power_led) power_led->on();
 
@@ -222,7 +228,7 @@ class GamePad *pico_joystick_run(const char *bluetooth_name, GPInput *bootloader
 
     Sleeper *sleeper = NULL;
 
-    if (wakeup_gpio >= 0) sleeper = new Sleeper(wakeup_gpio, power_led, bluetooth_led);
+    if (wakeup_gpio >= 0) sleeper = new Sleeper(wakeup_gpio);
     gp = new GamePad(sleeper, "gamepad", bluetooth_led, (uint8_t *) profile_data, sizeof(profile_data), (uint8_t) 0x580);
 
     bluetooth_start_gamepad(bluetooth_name);
