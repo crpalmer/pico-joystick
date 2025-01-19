@@ -11,13 +11,13 @@ class Button : public GPInput, public InputNotifier, PiThread {
 public:
     Button(int gpio, const char *name = "button");
 
-    void set_button_id(Gamepad *gp, int button_id);
+    void set_button_id(HIDButtons *buttons, int button_id);
 
     void main(void) override;
     void on_change(void) override;
 
 private:
-    class Gamepad *gp;
+    HIDButtons *buttons;
     int last_value = -1;
     int button_id = -1;
 };

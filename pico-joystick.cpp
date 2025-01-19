@@ -27,11 +27,11 @@ public:
 Button::Button(int gpio, const char *name) : GPInput(gpio), PiThread(name) { 
 }
 
-void Button::set_button_id(Gamepad *gp, int button_id) {
+void Button::set_button_id(HIDButtons *buttons, int button_id) {
     assert(this->button_id < 0);
     assert(button_id >= 0);
-    assert(gp);
-    this->gp = gp;
+    assert(buttons);
+    this->buttons = buttons;
     this->button_id = button_id;
     start(3);
 }
@@ -47,7 +47,7 @@ void Button::main() {
     while (1) {
 	bool this_value = get();
 	if (this_value != last_value) {
-	    gp->set_button(button_id, this_value);
+	    buttons->set_button(button_id, this_value);
 	    last_value = this_value;
 	}
 	pause();

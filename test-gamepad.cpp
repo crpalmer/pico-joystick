@@ -5,17 +5,6 @@
 #include "pi-threads.h"
 #include "time-utils.h"
 
-class TestGamepad : public Gamepad {
-public:
-    TestGamepad() : Gamepad("Test Gamepad") {
-    }
-
-    void set_button(int button_id, bool value) override {
-	printf("%d %d\n", button_id, value);
-	Gamepad::set_button(button_id, value);
-    }
-};
-
 Button *configure_test_button(Button *button) {
     button->set_pullup_up();
     return button;
@@ -24,11 +13,13 @@ Button *configure_test_button(Button *button) {
 static void threads_main(int argc, char **argv) {
     pico_joystick_boot();
 
-    Gamepad *gp = new TestGamepad();
+    Gamepad *gp = new Gamepad();
+    HIDButtons *buttons = gp->get_buttons();
 
-    configure_test_button(new Button(11, "test-button 1"))->set_button_id(gp, 1);
-    configure_test_button(new Button(12, "test-button 2"))->set_button_id(gp, 2);
+    configure_test_button(new Button(11, "test-button 1"))->set_button_id(buttons, 1);
+    configure_test_button(new Button(12, "test-button 2"))->set_button_id(buttons, 2);
 
+    gp->initialize("Test Gamepad");
     bluetooth_start_gamepad("Test Gamepad");
 }
     

@@ -16,7 +16,7 @@ public:
 
 class Joystick : public Gamepad {
 public:
-    Joystick(Output *led, DeepSleeper *sleeper) : Gamepad("Pico Joystick"), led(led), sleeper(sleeper) {
+    Joystick(Output *led, DeepSleeper *sleeper) : led(led), sleeper(sleeper) {
     }
 
     void can_send_now() override {
@@ -67,6 +67,7 @@ static void threads_main(int argc, char **argv) {
     power_led->on();
 
     Gamepad *gp = new Joystick(new GPOutput(18), new Sleeper());
+    HIDButtons *buttons = gp->get_buttons();
 
     Button *up     = configure_game_button(new Button(2, "up"));
     Button *down   = configure_game_button(new Button(3, "down"));
@@ -77,17 +78,18 @@ static void threads_main(int argc, char **argv) {
     Button *b2     = configure_game_button(new Button(11, "button-2"));
     Button *b3     = configure_game_button(new Button(12, "button-3"));
 
-    down->set_button_id(gp, 31);
-    up->set_button_id(gp, 30);
-    right->set_button_id(gp, 29);
-    left->set_button_id(gp, 28);
-    meta->set_button_id(gp, 27);
-    start->set_button_id(gp, 26);
-    select->set_button_id(gp, 25);
-    b2->set_button_id(gp, 24);
-    b1->set_button_id(gp, 23);
-    b3->set_button_id(gp, 22);
+    down->set_button_id(buttons, 31);
+    up->set_button_id(buttons, 30);
+    right->set_button_id(buttons, 29);
+    left->set_button_id(buttons, 28);
+    meta->set_button_id(buttons, 27);
+    start->set_button_id(buttons, 26);
+    select->set_button_id(buttons, 25);
+    b2->set_button_id(buttons, 24);
+    b1->set_button_id(buttons, 23);
+    b3->set_button_id(buttons, 22);
 
+    gp->initialize("Test Gamepad");
     bluetooth_start_gamepad("Pico Joystick");
     new Sleeper();
 }
