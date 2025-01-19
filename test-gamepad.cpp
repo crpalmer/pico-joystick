@@ -14,7 +14,8 @@ static void threads_main(int argc, char **argv) {
     pico_joystick_boot();
 
     Gamepad *gp = new Gamepad();
-    HIDButtons *buttons = gp->get_buttons();
+    HIDButtons *buttons = new HIDButtons(gp);
+    gp->add_hid_page(buttons);
 
     configure_test_button(new Button(11, "test-button 1"))->set_button_id(buttons, 1);
     configure_test_button(new Button(12, "test-button 2"))->set_button_id(buttons, 2);

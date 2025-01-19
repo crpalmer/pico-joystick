@@ -67,7 +67,8 @@ static void threads_main(int argc, char **argv) {
     power_led->on();
 
     Gamepad *gp = new Joystick(new GPOutput(18), new Sleeper());
-    HIDButtons *buttons = gp->get_buttons();
+    HIDButtons *buttons = new HIDButtons(gp);
+    gp->add_hid_page(buttons);
 
     Button *up     = configure_game_button(new Button(2, "up"));
     Button *down   = configure_game_button(new Button(3, "down"));

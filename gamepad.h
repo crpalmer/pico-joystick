@@ -6,14 +6,23 @@
 #include "writer.h"
 #include "bluetooth/hid.h"
 #include "memory.h"
+#include <list>
 
-class HIDButtons {
+class HIDPage {
 public:
-    HIDButtons(HID *hid, int first_button_id = 0, int last_button_id = 31) {
+    virtual int add_descriptor(uint8_t *descriptor) = 0;
+    virtual int get_report_size() = 0;
+    virtual void fill_report(uint8_t *report) = 0;
+};
+
+class HIDButtons : public HIDPage {
+public:
+    HIDButtons(HID *hid, int first_button_id = 0, int last_button_id = 31) : hid(hid) {
 	n_buttons = (last_button_id - first_button_id + 1);
 	n_buttons = (n_buttons + 7) / 8 * 8;
 
 	state = (uint8_t *) fatal_malloc(n_buttons / 8);
+	memset(state, 0, n_buttons / 8);
 
 	button_range[0] = first_button_id;
 	button_range[1] = ((last_button_id - first_button_id + 1) + 7) / 8 + first_button_id;
@@ -23,7 +32,7 @@ public:
 	fatal_free(state);
    }
 
-   int add_descriptor(uint8_t *descriptor) {
+   int add_descriptor(uint8_t *descriptor) override {
 	int i = 0;
 	descriptor[i++] = 0x05;
 	descriptor[i++] = 0x09; // USAGE_PAGE (Button)
@@ -45,11 +54,11 @@ public:
 	return i;
     }
 
-    int get_report_size() {
+    int get_report_size() override {
 	return n_buttons / 8;
     }
 
-    void fill_report(uint8_t *buf) {
+    void fill_report(uint8_t *buf) override {
 	memcpy(buf, state, get_report_size());
     }
 
@@ -75,10 +84,11 @@ private:
 class Gamepad : public HID {
 public:
     Gamepad() {
-	buttons = new HIDButtons(this);
     }
 
-    HIDButtons *get_buttons() { return buttons; }
+    void add_hid_page(HIDPage *page) {
+	hid_pages.push_back(page);
+    }
 
     void initialize(const char *name) {
 	int descriptor_len = 0;
@@ -88,31 +98,38 @@ public:
 	descriptor[descriptor_len++] = 0x04;                    // USAGE (Gamepad)
 	descriptor[descriptor_len++] = 0xa1;
 	descriptor[descriptor_len++] = 0x01;                    // COLLECTION (Application)
-	descriptor_len += buttons->add_descriptor(&descriptor[descriptor_len]);
+
+	report_size = 1;
+	for(auto page : hid_pages) {
+	    descriptor_len += page->add_descriptor(&descriptor[descriptor_len]);
+	    report_size += page->get_report_size();
+	}
+
 	descriptor[descriptor_len++] = 0xc0;                    // END_COLLECTION
 
 	HID::initialize(name, descriptor, descriptor_len, subclass);
-
-	report_size = 1;
-	report_size += buttons->get_report_size();
 
 	report = (uint8_t *) fatal_malloc(sizeof(*report) * report_size);
 	report[0] = 0xa1;
     }
 
     void can_send_now() override {
-	buttons->fill_report(&report[1]);
+	int pos = 1;
+	for (auto page : hid_pages) {
+	    page->fill_report(&report[pos]);
+	    pos += page->get_report_size();
+	}
 	send_report(report, report_size);
     }
 
 private:
-    HIDButtons *buttons;
     int report_size;
     uint8_t *report;
 
     static const int subclass = 0x580;
     static const int max_descriptor_len = 1024;
     uint8_t descriptor[max_descriptor_len];
+    std::list<HIDPage *> hid_pages;
 };
 
 #endif
