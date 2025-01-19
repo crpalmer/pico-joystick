@@ -22,6 +22,13 @@ static void threads_main(int argc, char **argv) {
 
     gp->initialize("Test Gamepad");
     bluetooth_start_gamepad("Test Gamepad");
+
+    while (1) {
+	ms_sleep(1000);
+	buttons->set_button(11, 1);
+	ms_sleep(10000);
+	buttons->set_button(11, 0);
+    }
 }
     
 int main(int argc, char **argv) {
