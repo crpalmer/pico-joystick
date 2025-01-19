@@ -1,4 +1,44 @@
+#include "pi.h"
+#include "bluetooth/bluetooth.h"
+#include "deep-sleep.h"
+#include "gamepad.h"
 #include "pico-joystick.h"
+
+class Sleeper : public DeepSleeper {
+public:
+    Sleeper() : DeepSleeper(-1, 10*60*1000) {
+    }
+
+    void pre_sleep(void) override {
+	pico_joystick_go_to_sleep();
+    }
+};
+
+class Joystick : public Gamepad {
+public:
+    Joystick(Output *led, DeepSleeper *sleeper) : Gamepad("Pico Joystick"), led(led), sleeper(sleeper) {
+    }
+
+    void can_send_now() override {
+	sleeper->prod();
+	Gamepad::can_send_now();
+    }
+
+    void on_connect() override {
+	sleeper->prod();
+	Gamepad::on_connect();
+	led->on();
+    }
+
+    void on_disconnect() override {
+	led->off();
+	Gamepad::on_disconnect();
+    }
+
+private:
+    Output *led;
+    DeepSleeper *sleeper;
+};
 
 static Button *configure_wakeup_game_button(Button *button) {
     button->set_pullup_down();
@@ -21,10 +61,12 @@ static void threads_main(int argc, char **argv) {
     Button *start  = configure_ui_button(new Button(6, "start"));
     Button *b1     = configure_wakeup_game_button(new Button(10, "button-1"));
 
-    GPOutput *power_led = new GPOutput(19);
-    GPOutput *bluetooth_led = new GPOutput(18);
+    pico_joystick_boot(b1, 10, start, "joystick");
 
-    pico_joystick_run("Pico Joystick", b1, 10, power_led, bluetooth_led, start, "joystick");
+    GPOutput *power_led = new GPOutput(19);
+    power_led->on();
+
+    Gamepad *gp = new Joystick(new GPOutput(18), new Sleeper());
 
     Button *up     = configure_game_button(new Button(2, "up"));
     Button *down   = configure_game_button(new Button(3, "down"));
@@ -35,16 +77,19 @@ static void threads_main(int argc, char **argv) {
     Button *b2     = configure_game_button(new Button(11, "button-2"));
     Button *b3     = configure_game_button(new Button(12, "button-3"));
 
-    down->set_button_id(31);
-    up->set_button_id(30);
-    right->set_button_id(29);
-    left->set_button_id(28);
-    meta->set_button_id(27);
-    start->set_button_id(26);
-    select->set_button_id(25);
-    b2->set_button_id(24);
-    b1->set_button_id(23);
-    b3->set_button_id(22);
+    down->set_button_id(gp, 31);
+    up->set_button_id(gp, 30);
+    right->set_button_id(gp, 29);
+    left->set_button_id(gp, 28);
+    meta->set_button_id(gp, 27);
+    start->set_button_id(gp, 26);
+    select->set_button_id(gp, 25);
+    b2->set_button_id(gp, 24);
+    b1->set_button_id(gp, 23);
+    b3->set_button_id(gp, 22);
+
+    bluetooth_start_gamepad("Pico Joystick");
+    new Sleeper();
 }
     
 int main(int argc, char **argv) {
