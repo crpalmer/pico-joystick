@@ -25,7 +25,7 @@ public:
 	memset(state, 0, n_buttons / 8);
 
 	button_range[0] = first_button_id;
-	button_range[1] = ((last_button_id - first_button_id + 1) + 7) / 8 + first_button_id;
+	button_range[1] = last_button_id;
    }
 
    ~HIDButtons() {
@@ -37,17 +37,17 @@ public:
 	descriptor[i++] = 0x05;
 	descriptor[i++] = 0x09; // USAGE_PAGE (Button)
 	descriptor[i++] = 0x19;
-	descriptor[i++] = 0x01; // USAGE_MINIMUM (Button 1)
+	descriptor[i++] = button_range[0];    // USAGE_MINIMUM (Button #)
 	descriptor[i++] = 0x29;
-	descriptor[i++] = 0x80; // USAGE_MAXIMUM (Button 32)
+	descriptor[i++] = button_range[1];   // USAGE_MAXIMUM (Button #)
 	descriptor[i++] = 0x15;
-	descriptor[i++] = 0x00; // LOGICAL_MINIMUM (0)
+	descriptor[i++] = 0;    // LOGICAL_MINIMUM
 	descriptor[i++] = 0x25;
-	descriptor[i++] = 0x01; // LOGICAL_MAXIMUM (1)
+	descriptor[i++] = 1;    // LOGICAL_MAXIMUM
 	descriptor[i++] = 0x95;
-	descriptor[i++] = 0x20; // REPORT_COUNT (32)
+	descriptor[i++] = n_buttons;   // REPORT_COUNT
 	descriptor[i++] = 0x75;
-	descriptor[i++] = 0x01; // REPORT_SIZE (1)
+	descriptor[i++] = 1;    // REPORT_SIZE
 	descriptor[i++] = 0x81;
 	descriptor[i++] = 0x02; // INPUT (Data,Var,Abs)
 
@@ -64,6 +64,7 @@ public:
 
     void set_button(int id, bool value) {
 	//assert(id >= button_range[0] && id <= button_range[1]);
+	id -= button_range[0];
 
 	int byte = id/8;
 	int bit = id%8;
