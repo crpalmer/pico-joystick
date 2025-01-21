@@ -69,6 +69,7 @@ static void threads_main(int argc, char **argv) {
     Gamepad *gp = new Joystick(new GPOutput(18), new Sleeper());
     HIDButtons *buttons = new HIDButtons(gp);
     gp->add_hid_page(buttons);
+    gp->initialize("Test Gamepad");
 
     Button *up     = configure_game_button(new Button(2, "up"));
     Button *down   = configure_game_button(new Button(3, "down"));
@@ -90,7 +91,6 @@ static void threads_main(int argc, char **argv) {
     b1->set_button_id(buttons, 23);
     b3->set_button_id(buttons, 22);
 
-    gp->initialize("Test Gamepad");
     bluetooth_start_gamepad("Pico Joystick");
     new Sleeper();
 }
