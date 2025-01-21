@@ -67,7 +67,7 @@ static void threads_main(int argc, char **argv) {
     power_led->on();
 
     Gamepad *gp = new Joystick(new GPOutput(18), new Sleeper());
-    HIDButtons *buttons = new HIDButtons(gp);
+    HIDButtons *buttons = new HIDButtons(gp, 1, 16);
     gp->add_hid_page(buttons);
     gp->initialize("Test Gamepad");
 
@@ -80,16 +80,16 @@ static void threads_main(int argc, char **argv) {
     Button *b2     = configure_game_button(new Button(11, "button-2"));
     Button *b3     = configure_game_button(new Button(12, "button-3"));
 
-    down->set_button_id(buttons, 31);
-    up->set_button_id(buttons, 30);
-    right->set_button_id(buttons, 29);
-    left->set_button_id(buttons, 28);
-    meta->set_button_id(buttons, 27);
-    start->set_button_id(buttons, 26);
-    select->set_button_id(buttons, 25);
-    b2->set_button_id(buttons, 24);
-    b1->set_button_id(buttons, 23);
-    b3->set_button_id(buttons, 22);
+    up->set_button_id(buttons, 1);
+    down->set_button_id(buttons, 2);
+    left->set_button_id(buttons, 3);
+    right->set_button_id(buttons, 4);
+    b1->set_button_id(buttons, 5);
+    b2->set_button_id(buttons, 6);
+    b3->set_button_id(buttons, 7);
+    start->set_button_id(buttons, 8);
+    select->set_button_id(buttons, 9);
+    meta->set_button_id(buttons, 10);
 
     bluetooth_start_gamepad("Pico Joystick");
     new Sleeper();
