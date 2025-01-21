@@ -21,11 +21,14 @@ public:
 	n_buttons = (last_button_id - first_button_id + 1);
 	n_buttons = (n_buttons + 7) / 8 * 8;
 
-	state = (uint8_t *) fatal_malloc(n_buttons / 8);
-	memset(state, 0, n_buttons / 8);
+	state_bytes = n_buttons / 8;
+	state = (uint8_t *) fatal_malloc(state_bytes);
+	memset(state, 0, state_bytes);
 
 	button_range[0] = first_button_id;
 	button_range[1] = last_button_id;
+
+	transaction_state = (uint8_t *) fatal_malloc(state_bytes);
    }
 
    ~HIDButtons() {
@@ -55,11 +58,11 @@ public:
     }
 
     int get_report_size() override {
-	return n_buttons / 8;
+	return state_bytes;
     }
 
     void fill_report(uint8_t *buf) override {
-	memcpy(buf, state, get_report_size());
+	memcpy(buf, state, state_bytes);
     }
 
     void set_button(int id, bool value) {
@@ -69,18 +72,41 @@ public:
 	int byte = id/8;
 	int bit = id%8;
 
-	uint8_t old_state = state[byte];
-	if (value) state[byte] |= (1 << bit);
-	else state[byte] &= ~(1 << bit);
+	uint8_t *this_state;
+	if (n_transactions) this_state = transaction_state;
+	else this_state = state;
 
-	if (old_state != state[byte]) hid->request_can_send_now();
+	uint8_t old_state = this_state[byte];
+	if (value) this_state[byte] |= (1 << bit);
+	else this_state[byte] &= ~(1 << bit);
+
+	if (! n_transactions && old_state != this_state[byte]) {
+	    hid->request_can_send_now();
+	}
+    }
+
+    void begin_transaction() {
+	if (n_transactions++ == 0) {
+	    memcpy(transaction_state, state, state_bytes);
+	}
+    }
+
+    void end_transaction() {
+	if (--n_transactions == 0 && memcmp(state, transaction_state, state_bytes) != 0) {
+	    memcpy(state, transaction_state, state_bytes);
+	    hid->request_can_send_now();
+	}
     }
 
 private:
     HID *hid;
+    int state_bytes;
     uint8_t *state;
     int n_buttons;
     int button_range[2];
+
+    int n_transactions = 0;
+    uint8_t *transaction_state;
 };
 
 class HIDXY : public HIDPage {
