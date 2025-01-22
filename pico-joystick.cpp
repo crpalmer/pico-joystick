@@ -124,8 +124,6 @@ void pico_joystick_go_to_sleep() {
 void pico_joystick_boot(Input *bootloader_button, int wakeup_gpio, Input *wifi_enable_button, const char *hostname) {
     const int BOOTLOADER_HOLD_MS = 100;
 
-    ms_sleep(1000);	// This seems to be important to let the bluetooth stack and the threads library both get started
-
     printf("Checking for bootloader request\n");
     struct timespec start;
     nano_gettime(&start);
