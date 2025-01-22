@@ -49,20 +49,19 @@ private:
 
 static struct {
     int gpio;
-    bool pull_down;
     const char *name;
     GPInput *input;
 } buttons[] = {
-    { 2, false, "up" },
-    { 3, false, "down" },
-    { 4, false, "left" },
-    { 5, false, "right" },
-    {10, true,  "b1" },
-    {11, false, "b2" },
-    {12, false, "b3" },
-    { 6, false, "start" },
-    { 7, false, "select" },
-    { 8, false, "meta" },
+    { 2, "up" },
+    { 3, "down" },
+    { 4, "left" },
+    { 5, "right" },
+    {10, "b1" },
+    {11, "b2" },
+    {12, "b3" },
+    { 6, "start" },
+    { 7, "select" },
+    { 8, "meta" },
 };
 
 static const int n_buttons = sizeof(buttons) / sizeof(*buttons);
@@ -77,12 +76,7 @@ static GPInput *get_button(const char *name) {
 static void threads_main(int argc, char **argv) {
     for (int i = 0; i < n_buttons; i++) {
 	buttons[i].input = new GPInput(buttons[i].gpio);
-	if (buttons[i].pull_down) {
-	    buttons[i].input->set_pullup_down();
-	    buttons[i].input->set_is_inverted();
-	} else {
-	    buttons[i].input->set_pullup_up();
-	}
+	buttons[i].input->set_pullup_up();
     }
 
     GPInput *start  = get_button("start");
@@ -112,4 +106,3 @@ static void threads_main(int argc, char **argv) {
 int main(int argc, char **argv) {
    pi_init_with_threads(threads_main, argc, argv);
 }
-
