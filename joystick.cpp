@@ -98,7 +98,6 @@ static void threads_main(int argc, char **argv) {
     joystick->add_hid_page(hid_buttons);
     joystick->initialize("Test Gamepad");
     bluetooth_start_gamepad("Pico Joystick");
-    new Sleeper();
 
     while (1) {
 	joystick->wait_connected();
