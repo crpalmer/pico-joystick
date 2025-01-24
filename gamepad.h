@@ -6,6 +6,7 @@
 #include "writer.h"
 #include "bluetooth/hid.h"
 #include "memory.h"
+#include "pi-threads.h"
 #include <list>
 
 class HIDPage {
@@ -163,9 +164,82 @@ private:
     int8_t y = 0;
 };
 
-class Gamepad : public HID {
+class HIDSpinner : public HIDPage {
 public:
-    Gamepad() {
+    HIDSpinner(HID *hid) : hid(hid) {
+	lock = new PiMutex();
+    }
+
+
+   int add_descriptor(uint8_t *descriptor) override {
+	int i = 0;
+	descriptor[i++] = 0x05;
+	descriptor[i++] = 0x01;		// USAGE_PAGE (Generic Desktop Controls)
+	descriptor[i++] = 0x09;
+	descriptor[i++] = 0x30; 	// USAGE (X)
+	descriptor[i++] = 0x09;
+	descriptor[i++] = 0x31; 	// USAGE (X)
+	descriptor[i++] = 0x16;
+	descriptor[i++] = -1000 & 0xff; // LOGICAL_MINIMUM
+	descriptor[i++] = -1000 >> 8;   // LOGICAL_MINIMUM
+	descriptor[i++] = 0x26;
+	descriptor[i++] = 1000 & 0xff;  // LOGICAL_MAXIMUM
+	descriptor[i++] = 1000 >> 8;    // LOGICAL_MAXIMUM
+	descriptor[i++] = 0x95;
+	descriptor[i++] = 2;            // REPORT_COUNT
+	descriptor[i++] = 0x75;
+	descriptor[i++] = 16;           // REPORT_SIZE
+	descriptor[i++] = 0x81;
+	descriptor[i++] = 0x06;         // INPUT (Data,Var,Rel)
+
+	return i;
+    }
+
+    int get_report_size() override {
+	return 4;
+    }
+
+    void fill_report(uint8_t *buf) override {
+	lock->lock();
+	int report_ticks = ticks();
+	delta = 0;
+	lock->unlock();
+
+	buf[0] = report_ticks & 0xff;
+	buf[1] = report_ticks >> 8;
+	buf[2] = buf[3] = 0;
+    }
+
+    void set_position(double position) {
+	lock->lock();
+
+	double delta = position - this->position;
+
+	if (delta > 0.5) delta = position - (1 + this->position);
+	if (delta < -0.5) delta = (1 + position) - this->position;
+
+	this->delta += delta;
+	this->position = position;
+
+	int report_ticks = ticks();
+
+	lock->unlock();
+
+	if (report_ticks != 0) hid->request_can_send_now();
+    }
+
+private:
+    HID *hid;
+    PiMutex *lock;
+    double position = 0;
+    double delta = 0;
+
+    int ticks() { return delta * 1000; }
+};
+
+class HIDController : public HID {
+public:
+    HIDController(uint8_t usage) : usage(usage) {
     }
 
     void add_hid_page(HIDPage *page) {
@@ -177,7 +251,7 @@ public:
 	descriptor[descriptor_len++] = 0x05;
 	descriptor[descriptor_len++] = 0x01; // USAGE_PAGE (Generic Desktop)
 	descriptor[descriptor_len++] = 0x09;
-	descriptor[descriptor_len++] = 0x04; // USAGE (Gamepad)
+	descriptor[descriptor_len++] = usage; // USAGE (___)
 	descriptor[descriptor_len++] = 0xa1;
 	descriptor[descriptor_len++] = 0x01; // COLLECTION (Application)
 	descriptor[descriptor_len++] = 0xa1;
@@ -211,10 +285,23 @@ private:
     int report_size;
     uint8_t *report;
 
+    uint8_t usage;
     static const int subclass = 0x580;
     static const int max_descriptor_len = 1024;
     uint8_t descriptor[max_descriptor_len];
     std::list<HIDPage *> hid_pages;
+};
+
+class Gamepad : public HIDController {
+public:
+    Gamepad() : HIDController(0x04) {
+    }
+};
+
+class Mouse : public HIDController {
+public:
+    Mouse() : HIDController(0x02) {
+    }
 };
 
 #endif

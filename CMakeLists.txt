@@ -24,3 +24,4 @@ add_subdirectory(lib)
 
 executable(test-gamepad)
 executable(joystick)
+executable(spinner)
