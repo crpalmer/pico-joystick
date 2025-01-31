@@ -1,6 +1,6 @@
 #include <string.h>
-#include "hardware/watchdog.h"
 #include "pi.h"
+#include "hardware/watchdog.h"
 #include "bluetooth/bluetooth.h"
 #include "bluetooth/hid.h"
 #include "deep-sleep.h"
