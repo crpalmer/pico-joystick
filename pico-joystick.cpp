@@ -142,7 +142,7 @@ void pico_joystick_boot(Input *bootloader_button, int wakeup_gpio, Input *wifi_e
 
     printf("Starting\n");
 
-    new ConsoleThread(new StdinReader(), new StdoutWriter());
+    //new ConsoleThread(new StdinReader(), new StdoutWriter());
 
     bool has_wifi = false;
     if (! wifi_enable_button) has_wifi = (hostname != NULL);
