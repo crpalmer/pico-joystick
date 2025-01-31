@@ -180,11 +180,11 @@ public:
 	descriptor[i++] = 0x09;
 	descriptor[i++] = 0x31; 	// USAGE (X)
 	descriptor[i++] = 0x16;
-	descriptor[i++] = -1000 & 0xff; // LOGICAL_MINIMUM
-	descriptor[i++] = -1000 >> 8;   // LOGICAL_MINIMUM
+	descriptor[i++] = -2000 & 0xff;	// LOGICAL_MINIMUM
+	descriptor[i++] = -2000 >> 8;	// LOGICAL_MINIMUM
 	descriptor[i++] = 0x26;
-	descriptor[i++] = 1000 & 0xff;  // LOGICAL_MAXIMUM
-	descriptor[i++] = 1000 >> 8;    // LOGICAL_MAXIMUM
+	descriptor[i++] = +2000 & 0xff;	// LOGICAL_MAXIMUM
+	descriptor[i++] = +2000 >> 8;	// LOGICAL_MAXIMUM
 	descriptor[i++] = 0x95;
 	descriptor[i++] = 2;            // REPORT_COUNT
 	descriptor[i++] = 0x75;
@@ -207,7 +207,7 @@ public:
 
 	buf[0] = report_ticks & 0xff;
 	buf[1] = report_ticks >> 8;
-	buf[2] = buf[3] = 0;
+	buf[2] = buf[3];
     }
 
     void set_position(double position) {
@@ -234,7 +234,7 @@ private:
     double position = 0;
     double delta = 0;
 
-    int ticks() { return delta * 1000; }
+    int ticks() { return delta * 2000; }
 };
 
 class HIDController : public HID {
