@@ -56,8 +56,10 @@ static struct {
     {-1, "right" },
     {13, "b1" },
     { 9, "b2" },
+    {-1, "b3" },
     { 2, "start" },
     { 5, "select" },
+    {-1, "meta" },
     {26, "thumb-switch" },
 };
 
