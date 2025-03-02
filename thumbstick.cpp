@@ -7,7 +7,7 @@
 
 class Sleeper : public DeepSleeper {
 public:
-    Sleeper() : DeepSleeper(-1, 10*60*1000) {
+    Sleeper(int gpio) : DeepSleeper(gpio, 10*60*1000) {
     }
 
     void pre_sleep(void) override {
@@ -87,7 +87,7 @@ static void threads_main(int argc, char **argv) {
 
     pico_joystick_boot(b1, 13, start, "joystick");
 
-    Joystick *joystick = new Joystick(new Sleeper());
+    Joystick *joystick = new Joystick(new Sleeper(2));
     HIDButtons *hid_buttons = new HIDButtons(joystick, 1, n_buttons+1);
     joystick->add_hid_page(hid_buttons);
     joystick->initialize("Pico Thumbstick");
